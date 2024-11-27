@@ -51,6 +51,45 @@ public class QuizServiceImpl implements QuizService {
 
 	}
 
+	@Override
+public BasicRes update(CreateUpdateReq req) {
+    // 參數檢查
+    BasicRes checkResult = checkParams(req);
+    if (checkResult != null) {
+        return checkResult;
+    }
+
+    // 查詢是否存在該 quiz
+    Quiz quiz = quizDao.findById(req.getId());
+    if (existingQuiz == null) {
+        return new BasicRes(ResMessage.QUIZ_NOT_FOUND.getCode(), ResMessage.QUIZ_NOT_FOUND.getMessage());
+    }
+
+    // 更新 quiz 的基本資訊
+    quiz.setName(req.getName());
+    quiz.setDescription(req.getDescription());
+    quiz.setStartDate(req.getStartDate());
+    quiz.setEndDate(req.getEndDate());
+    quiz.setPublished(req.isPublished());
+
+    // 儲存更新後的 quiz
+    quizDao.save(quiz);
+
+    // 更新關聯的問題
+    for (Ques item : req.getQuesList()) {
+        Ques ques = quesDao.findById(item.getQuesId());
+        if (ques != null) {
+            ques.setQuesName(item.getQuesName());
+            ques.setType(item.getType());
+            ques.setOptions(item.getOptions());
+            quesDao.save(ques);
+        } 
+    }
+
+    return new BasicRes(ResMessage.SUCCESS.getCode(), ResMessage.SUCCESS.getMessage());
+}
+
+
 	private BasicRes checkParams(CreateUpdateReq req) {
 		// 檢查新增問卷時，id要為0
 		if (req.getId() != 0) {
