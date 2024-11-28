@@ -21,7 +21,7 @@ public class Ques {
 	@Column(name = "ques_name")
 	private String quesName;
 
-	@Column(name = "tye")
+	@Column(name = "type")
 	private String type;
 
 	@Column(name = "required")

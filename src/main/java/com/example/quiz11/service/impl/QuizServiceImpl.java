@@ -8,6 +8,7 @@ import java.util.Optional;
 import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.example.quiz11.constants.QuesType;
@@ -23,6 +24,7 @@ import com.example.quiz11.vo.DeleteReq;
 import com.example.quiz11.vo.SearchReq;
 import com.example.quiz11.vo.SearchRes;
 
+@Service
 public class QuizServiceImpl implements QuizService {
 	@Autowired
 	private QuizDao quizDao;

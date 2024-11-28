@@ -26,11 +26,12 @@ public class Quiz {
 	@Column(name = "description")
 	private String description;
 
+//	@JsonProperty("start_date")
 	@Column(name = "start_date")
-	private LocalDate startDate;
+	private LocalDate startDate = LocalDate.now(); // 給定預設值
 
 	@Column(name = "end_date")
-	private LocalDate endDate;
+	private LocalDate endDate = LocalDate.now();
 
 	@Column(name = "published")
 	private boolean published;
