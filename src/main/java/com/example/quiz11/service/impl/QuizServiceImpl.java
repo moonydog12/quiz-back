@@ -20,6 +20,8 @@ import com.example.quiz11.service.ifs.QuizService;
 import com.example.quiz11.vo.BasicRes;
 import com.example.quiz11.vo.CreateUpdateReq;
 import com.example.quiz11.vo.DeleteReq;
+import com.example.quiz11.vo.SearchReq;
+import com.example.quiz11.vo.SearchRes;
 
 public class QuizServiceImpl implements QuizService {
 	@Autowired
@@ -218,5 +220,34 @@ public class QuizServiceImpl implements QuizService {
 
 		return new BasicRes(ResMessage.SUCCESS.getCode(), //
 				ResMessage.SUCCESS.getMessage());
+	}
+
+	@Override
+	public SearchRes search(SearchReq req) {
+		// 檢視條件
+		String name = req.getName();
+
+		// 若 name = null 或空白字串， 一律轉成空字串
+		if (!StringUtils.hasText(name)) {
+			name = "";
+		}
+
+		LocalDate startDate = req.getStartDate();
+		// 若沒有開始日期條件，將日期轉成很早的時間
+		if (startDate == null) {
+			startDate = LocalDate.of(1970, 1, 1);
+		}
+
+		// 若沒有結束日期條件，將日期轉成長遠的未來時間
+		LocalDate endDate = req.getEndDate();
+		if (endDate == null) {
+			endDate = LocalDate.of(9999, 12, 31);
+
+		}
+
+		List<Quiz> quizList = quizDao.getByCondition(name, startDate, endDate);
+
+		return new SearchRes(ResMessage.SUCCESS.getCode(), //
+				ResMessage.SUCCESS.getMessage(), quizList);
 	}
 }

@@ -1,5 +1,6 @@
 package com.example.quiz11.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import javax.transaction.Transactional;
@@ -18,4 +19,8 @@ public interface QuizDao extends JpaRepository<Quiz, Integer> {
 	@Modifying
 	@Query(value = "DELETE FROM quiz WHERE id IN(?1)", nativeQuery = true)
 	public void deleteByIdIn(List<Integer> idList);
+
+	@Query(value = "SELECT id, name, description, start_date, end_date, published" //
+			+ " FROM quiz WHERE name = %?1% AND start_date >= ?2 AND end_date <= ?3", nativeQuery = true)
+	public List<Quiz> getByCondition(String name, LocalDate startDate, LocalDate endDate);
 }
