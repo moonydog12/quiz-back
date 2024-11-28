@@ -2,6 +2,7 @@ package com.example.quiz11.service.impl;
 
 import java.time.LocalDate;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 
 import javax.transaction.Transactional;
@@ -18,6 +19,7 @@ import com.example.quiz11.repository.QuizDao;
 import com.example.quiz11.service.ifs.QuizService;
 import com.example.quiz11.vo.BasicRes;
 import com.example.quiz11.vo.CreateUpdateReq;
+import com.example.quiz11.vo.DeleteReq;
 
 public class QuizServiceImpl implements QuizService {
 	@Autowired
@@ -201,6 +203,18 @@ public class QuizServiceImpl implements QuizService {
 		// 先刪除相同 quiz_id 問卷中的所有問題，再重新新增
 		quesDao.deleteByQuizId(quizId);
 		quesDao.saveAll(req.getQuesList());
+
+		return new BasicRes(ResMessage.SUCCESS.getCode(), //
+				ResMessage.SUCCESS.getMessage());
+	}
+
+	@Override
+	public BasicRes delete(DeleteReq req) {
+		// 刪問卷
+		quizDao.deleteByIdIn(req.getQuizIdList());
+
+		// 刪相同 quiz_id 問卷的所有問題
+		quesDao.deleteByQuizIdIn(req.getQuizIdList());
 
 		return new BasicRes(ResMessage.SUCCESS.getCode(), //
 				ResMessage.SUCCESS.getMessage());

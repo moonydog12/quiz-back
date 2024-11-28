@@ -1,5 +1,7 @@
 package com.example.quiz11.repository;
 
+import java.util.List;
+
 import javax.transaction.Transactional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,4 +19,9 @@ public interface QuesDao extends JpaRepository<Ques, QuesId> {
 	@Modifying
 	@Query(value = "DELETE FROM ques WHERE quiz_id = ?1", nativeQuery = true)
 	public int deleteByQuizId(int quizId);
+
+	@Transactional
+	@Modifying
+	@Query(value = "DELETE FROM ques WHERE quiz_id IN(?1)", nativeQuery = true)
+	public void deleteByQuizIdIn(List<Integer> quizIdList);
 }
