@@ -1,6 +1,7 @@
 package com.example.quiz11.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,7 @@ public class QuizServiceController {
 	@Autowired
 	private QuizService quizService;
 
+	@CrossOrigin(origins = "http://localhost:5173")
 	@PostMapping(value = "quiz/create")
 	public BasicRes create(@RequestBody CreateUpdateReq req) {
 		return quizService.create(req);
