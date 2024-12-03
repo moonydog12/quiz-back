@@ -27,6 +27,8 @@ import com.example.quiz11.service.ifs.QuizService;
 import com.example.quiz11.vo.BasicRes;
 import com.example.quiz11.vo.CreateUpdateReq;
 import com.example.quiz11.vo.DeleteReq;
+import com.example.quiz11.vo.FeedbackDto;
+import com.example.quiz11.vo.FeedbackRes;
 import com.example.quiz11.vo.FillinReq;
 import com.example.quiz11.vo.Options;
 import com.example.quiz11.vo.SearchReq;
@@ -383,5 +385,18 @@ public class QuizServiceImpl implements QuizService {
 
 		return new BasicRes(ResMessage.SUCCESS.getCode(), //
 				ResMessage.SUCCESS.getMessage());
+	}
+
+	@Override
+	public FeedbackRes feedback(int quizId) {
+		// 參數檢查
+		if (quizId <= 0) {
+			return new FeedbackRes(ResMessage.QUIZ_ID_ERROR.getCode(), //
+					ResMessage.QUIZ_ID_ERROR.getMessage());
+		}
+
+		List<FeedbackDto> list = feedbackDao.getFeedbackByQuizId(quizId);
+		return new FeedbackRes(ResMessage.SUCCESS.getCode(), //
+				ResMessage.SUCCESS.getMessage(), list);
 	}
 }
