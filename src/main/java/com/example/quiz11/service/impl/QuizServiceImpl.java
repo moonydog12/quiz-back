@@ -2,7 +2,7 @@ package com.example.quiz11.service.impl;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,13 +33,18 @@ import com.example.quiz11.vo.FillinReq;
 import com.example.quiz11.vo.Options;
 import com.example.quiz11.vo.SearchReq;
 import com.example.quiz11.vo.SearchRes;
+import com.example.quiz11.vo.StatisticsDto;
+import com.example.quiz11.vo.StatisticsRes;
+import com.example.quiz11.vo.StatisticsVo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class QuizServiceImpl implements QuizService {
+	// 常用工具寫成全域變數
+	private ObjectMapper mapper = new ObjectMapper();
+
 	@Autowired
 	private QuizDao quizDao;
 
@@ -251,6 +256,8 @@ public class QuizServiceImpl implements QuizService {
 			name = "";
 		}
 
+		String namePattern = "%" + name + "%";
+
 		LocalDate startDate = req.getStartDate();
 		// 若沒有開始日期條件，將日期轉成很早的時間
 		if (startDate == null) {
@@ -264,7 +271,7 @@ public class QuizServiceImpl implements QuizService {
 
 		}
 
-		List<Quiz> quizList = quizDao.getByCondition(name, startDate, endDate);
+		List<Quiz> quizList = quizDao.getByCondition(namePattern, startDate, endDate);
 
 		return new SearchRes(ResMessage.SUCCESS.getCode(), //
 				ResMessage.SUCCESS.getMessage(), quizList);
@@ -314,7 +321,7 @@ public class QuizServiceImpl implements QuizService {
 
 		// 題號 選項(1~n)
 		Map<Integer, List<String>> answerMap = req.getAnswer();
-		ObjectMapper mapper = new ObjectMapper();
+
 		for (Ques item : quesList) {
 			// req 中的選項(作答)
 			List<String> ansList = answerMap.get(item.getQuesId());
@@ -398,5 +405,107 @@ public class QuizServiceImpl implements QuizService {
 		List<FeedbackDto> list = feedbackDao.getFeedbackByQuizId(quizId);
 		return new FeedbackRes(ResMessage.SUCCESS.getCode(), //
 				ResMessage.SUCCESS.getMessage(), list);
+	}
+
+	@Override
+	public StatisticsRes statistics(int quizId) {
+		// 參數檢查
+		if (quizId <= 0) {
+			return new StatisticsRes(ResMessage.QUIZ_ID_ERROR.getCode(), //
+					ResMessage.QUIZ_ID_ERROR.getMessage());
+		}
+
+		List<StatisticsDto> dtoList = feedbackDao.getStatisticsByQuizId(quizId);
+
+		if (dtoList.isEmpty()) {
+			return new StatisticsRes(ResMessage.SUCCESS.getCode(), //
+					ResMessage.SUCCESS.getMessage(), new ArrayList<>());
+		}
+
+		// 將 Dto 內容轉成 vo
+		List<StatisticsVo> voList = new ArrayList<>();
+
+		a: for (StatisticsDto dto : dtoList) {
+			// 用來判斷 voList 中是否已存在相同問題編號的vo
+			boolean isDuplicated = false;
+			Map<String, Integer> optionCountMap = new HashMap<>();
+			StatisticsVo vo = new StatisticsVo();
+
+			// 從voList中取有相同 quesId 的 vo --> 目的是不用再重新取選項，直接計算次數
+			for (StatisticsVo voItem : voList) {
+				if (voItem.getQuesId() == dto.getQuesId()) {
+					optionCountMap = voItem.getOptionCountMap();
+					vo = voItem;
+					isDuplicated = true;
+					break;
+				}
+			}
+
+			// 表示 voList 中沒有相同問題編號的vo
+			if (!isDuplicated) {
+				voList.add(vo);
+			}
+
+			// 把 Ques 中的 options 字串轉成 Options 類別
+			List<Options> optionsList = new ArrayList<>();
+			List<String> answerList = new ArrayList<>();
+
+			try {
+				// 題型是 text 時，選項沒有值
+				if (!dto.getType().equalsIgnoreCase(QuesType.TEXT.getType())) {
+					optionsList = mapper.readValue(dto.getOptionsStr(), new TypeReference<>() {
+					});
+				}
+
+				// 1.answer欄位有值(包括空陣列的字串)
+				// 2. 非簡答(文字)類型題目
+				// 將答案字串轉成 List<String> 空白、空字串會出事!!!!!
+				if (StringUtils.hasText(dto.getAnswerStr())
+						&& !dto.getType().equalsIgnoreCase(QuesType.TEXT.getType())) {
+					answerList = mapper.readValue(dto.getAnswerStr(), new TypeReference<>() {
+					});
+				}
+
+			} catch (Exception e) {
+				return new StatisticsRes(ResMessage.OPTIONS_TRANSFER_ERROR.getCode(), //
+						ResMessage.OPTIONS_TRANSFER_ERROR.getMessage());
+			}
+
+			// 題型是 text 時，不蒐集選項跟答案
+			if (dto.getType().equalsIgnoreCase(QuesType.TEXT.getType())) {
+				// 確認volist中是否已存在相同問題編號的 StatisticsVo
+				if (isDuplicated) {
+					continue a; // 跳過一次外層迴圈
+				}
+				voList.add(new StatisticsVo(dto.getQuizName(), dto.getQuesId(), dto.getQuesName(), optionCountMap));
+				continue; // 跳過當次
+			}
+
+			// 蒐集選項
+			// 沒有重複的 vo 需要再收集選項
+			if (!isDuplicated) {
+				for (Options item : optionsList) {
+					optionCountMap.put(item.getOption(), 0);
+				}
+			}
+
+			// 蒐集答案(計算選項次數)
+			for (String str : answerList) {
+				// 取出前一次計算出的選項次數
+				int previousCount = optionCountMap.get(str);
+				optionCountMap.put(str, previousCount + 1);
+			}
+
+			vo.setQuizName(dto.getQuizName());
+			vo.setQuesId(dto.getQuesId());
+			vo.setQuesName(dto.getQuesName());
+			vo.setOptionCountMap(optionCountMap);
+
+			// 最後不需要將 vo add到 volist中，因為迴圈開始時，已經有將其加入了
+		}
+
+		return new StatisticsRes(ResMessage.SUCCESS.getCode(), //
+				ResMessage.SUCCESS.getMessage(), voList);
+
 	}
 }

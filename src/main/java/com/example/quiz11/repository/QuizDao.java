@@ -20,8 +20,8 @@ public interface QuizDao extends JpaRepository<Quiz, Integer> {
 	@Query(value = "DELETE FROM quiz WHERE id IN(?1)", nativeQuery = true)
 	public void deleteByIdIn(List<Integer> idList);
 
-	@Query(value = "SELECT id, name, description, start_date, end_date, published" //
-			+ " FROM quiz WHERE name = %?1% AND start_date >= ?2 AND end_date <= ?3", nativeQuery = true)
+	@Query(value = "SELECT id, name, description, start_date, end_date, published " + "FROM quiz "
+			+ "WHERE name LIKE ?1 AND start_date >= ?2 AND end_date <= ?3", nativeQuery = true)
 	public List<Quiz> getByCondition(String name, LocalDate startDate, LocalDate endDate);
 
 	// public Quiz findByIdAndPublishedTrue(int quizId); // JPA 語法，功能同下
@@ -33,7 +33,6 @@ public interface QuizDao extends JpaRepository<Quiz, Integer> {
 
 	@Query(value = "SELECT id, name, description, start_date, end_date, published" //
 			+ " FROM quiz WHERE id = ?1 AND published IS true"
-			+" AND start_date <= ?2 AND end_date >= ?2"
-			, nativeQuery = true)
+			+ " AND start_date <= ?2 AND end_date >= ?2", nativeQuery = true)
 	public Quiz getByIdAndPublishedTrueBetween(int quizId, LocalDate fillinDate);
 }

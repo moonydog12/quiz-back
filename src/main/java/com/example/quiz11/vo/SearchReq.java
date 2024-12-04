@@ -5,9 +5,9 @@ import java.time.LocalDate;
 public class SearchReq {
 	private String name;
 
-	private LocalDate StartDate;
+	private LocalDate startDate;
 
-	private LocalDate EndDate;
+	private LocalDate endDate;
 
 	public SearchReq() {
 		super();
@@ -16,8 +16,8 @@ public class SearchReq {
 	public SearchReq(String name, LocalDate startDate, LocalDate endDate) {
 		super();
 		this.name = name;
-		StartDate = startDate;
-		EndDate = endDate;
+		this.startDate = startDate;
+		this.endDate = endDate;
 	}
 
 	public String getName() {
@@ -25,11 +25,11 @@ public class SearchReq {
 	}
 
 	public LocalDate getStartDate() {
-		return StartDate;
+		return startDate;
 	}
 
 	public LocalDate getEndDate() {
-		return EndDate;
+		return endDate;
 	}
 
 }

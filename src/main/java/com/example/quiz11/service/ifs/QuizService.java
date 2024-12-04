@@ -7,6 +7,7 @@ import com.example.quiz11.vo.FeedbackRes;
 import com.example.quiz11.vo.FillinReq;
 import com.example.quiz11.vo.SearchReq;
 import com.example.quiz11.vo.SearchRes;
+import com.example.quiz11.vo.StatisticsRes;
 
 public interface QuizService {
 	public BasicRes create(CreateUpdateReq req);
@@ -20,4 +21,6 @@ public interface QuizService {
 	public BasicRes fillin(FillinReq req);
 
 	public FeedbackRes feedback(int quizId);
+
+	public StatisticsRes statistics(int quizId);
 }

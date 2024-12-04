@@ -17,12 +17,12 @@ import com.example.quiz11.vo.FillinReq;
 import com.example.quiz11.vo.SearchReq;
 import com.example.quiz11.vo.SearchRes;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 public class QuizServiceController {
 	@Autowired
 	private QuizService quizService;
 
-	@CrossOrigin(origins = "http://localhost:5173")
 	@PostMapping(value = "quiz/create")
 	public BasicRes create(@RequestBody CreateUpdateReq req) {
 		return quizService.create(req);
