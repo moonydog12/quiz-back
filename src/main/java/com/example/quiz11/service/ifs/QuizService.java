@@ -5,6 +5,7 @@ import com.example.quiz11.vo.CreateUpdateReq;
 import com.example.quiz11.vo.DeleteReq;
 import com.example.quiz11.vo.FeedbackRes;
 import com.example.quiz11.vo.FillinReq;
+import com.example.quiz11.vo.GetQuizRes;
 import com.example.quiz11.vo.SearchReq;
 import com.example.quiz11.vo.SearchRes;
 import com.example.quiz11.vo.StatisticsRes;
@@ -23,4 +24,6 @@ public interface QuizService {
 	public FeedbackRes feedback(int quizId);
 
 	public StatisticsRes statistics(int quizId);
+
+	public GetQuizRes getQuizById(int quizId);
 }

@@ -30,6 +30,7 @@ import com.example.quiz11.vo.DeleteReq;
 import com.example.quiz11.vo.FeedbackDto;
 import com.example.quiz11.vo.FeedbackRes;
 import com.example.quiz11.vo.FillinReq;
+import com.example.quiz11.vo.GetQuizRes;
 import com.example.quiz11.vo.Options;
 import com.example.quiz11.vo.SearchReq;
 import com.example.quiz11.vo.SearchRes;
@@ -506,6 +507,15 @@ public class QuizServiceImpl implements QuizService {
 
 		return new StatisticsRes(ResMessage.SUCCESS.getCode(), //
 				ResMessage.SUCCESS.getMessage(), voList);
+
+	}
+
+	@Override
+	public GetQuizRes getQuizById(int quizId) {
+		Quiz quiz = quizDao.getById(quizId);
+		List<Ques> ques = quesDao.getByQuizId(quizId);
+
+		return new GetQuizRes(ResMessage.SUCCESS.getCode(), ResMessage.SUCCESS.getMessage(), quiz, ques);
 
 	}
 }

@@ -14,6 +14,8 @@ import com.example.quiz11.vo.CreateUpdateReq;
 import com.example.quiz11.vo.DeleteReq;
 import com.example.quiz11.vo.FeedbackRes;
 import com.example.quiz11.vo.FillinReq;
+import com.example.quiz11.vo.GetQuizReq;
+import com.example.quiz11.vo.GetQuizRes;
 import com.example.quiz11.vo.SearchReq;
 import com.example.quiz11.vo.SearchRes;
 
@@ -51,5 +53,10 @@ public class QuizServiceController {
 	@GetMapping(value = "quiz/feedback")
 	public FeedbackRes feedback(@RequestParam int quizId) {
 		return quizService.feedback(quizId);
+	}
+
+	@PostMapping(value = "quiz/getone")
+	public GetQuizRes getone(@RequestBody GetQuizReq req) {
+		return quizService.getQuizById(req.getQuizId());
 	}
 }
