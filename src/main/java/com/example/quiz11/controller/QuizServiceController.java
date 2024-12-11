@@ -18,6 +18,7 @@ import com.example.quiz11.vo.GetQuizReq;
 import com.example.quiz11.vo.GetQuizRes;
 import com.example.quiz11.vo.SearchReq;
 import com.example.quiz11.vo.SearchRes;
+import com.example.quiz11.vo.StatisticsRes;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
@@ -53,6 +54,11 @@ public class QuizServiceController {
 	@GetMapping(value = "quiz/feedback")
 	public FeedbackRes feedback(@RequestParam int quizId) {
 		return quizService.feedback(quizId);
+	}
+
+	@GetMapping(value = "quiz/statistics")
+	public StatisticsRes statistics(@RequestParam int quizId) {
+		return quizService.statistics(quizId);
 	}
 
 	@PostMapping(value = "quiz/getone")

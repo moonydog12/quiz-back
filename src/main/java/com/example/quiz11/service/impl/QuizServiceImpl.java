@@ -91,45 +91,6 @@ public class QuizServiceImpl implements QuizService {
 				ResMessage.SUCCESS.getMessage());
 
 	}
-
-//	@Override
-//	public BasicRes update(CreateUpdateReq req) {
-//		// 參數檢查
-//		BasicRes checkResult = checkParams(req);
-//		if (checkResult != null) {
-//			return checkResult;
-//		}
-//
-//		// 查詢是否存在該 quiz
-//		Optional<Quiz> quiz = quizDao.findById(req.getId());
-//		if (quiz == null) {
-//			return new BasicRes(ResMessage.QUIZ_NOT_FOUND.getCode(), ResMessage.QUIZ_NOT_FOUND.getMessage());
-//		}
-//
-//		// 更新 quiz 的基本資訊
-//		quiz.setName(req.getName());
-//		quiz.setDescription(req.getDescription());
-//		quiz.setStartDate(req.getStartDate());
-//		quiz.setEndDate(req.getEndDate());
-//		quiz.setPublished(req.isPublished());
-//
-//		// 儲存更新後的 quiz
-//		quizDao.save(quiz);
-//
-//		// 更新關聯的問題
-//		for (Ques item : req.getQuesList()) {
-//			Ques ques = quesDao.findById(item.getQuesId());
-//			if (ques != null) {
-//				ques.setQuesName(item.getQuesName());
-//				ques.setType(item.getType());
-//				ques.setOptions(item.getOptions());
-//				quesDao.save(ques);
-//			}
-//		}
-//
-//		return new BasicRes(ResMessage.SUCCESS.getCode(), ResMessage.SUCCESS.getMessage());
-//	}
-
 	private BasicRes checkParams(CreateUpdateReq req) {
 
 		if (!StringUtils.hasText(req.getName()) || !StringUtils.hasText(req.getDescription())) {
@@ -280,6 +241,7 @@ public class QuizServiceImpl implements QuizService {
 
 	@Override
 	public BasicRes fillin(FillinReq req) {
+		System.out.println("Answer Map: " + req.getAnswer());
 		// 參數檢查
 		if (req.getQuizId() <= 0) {
 			return new BasicRes(ResMessage.QUIZ_ID_ERROR.getCode(), ResMessage.QUIZ_ID_ERROR.getMessage());
@@ -288,9 +250,7 @@ public class QuizServiceImpl implements QuizService {
 			return new BasicRes(ResMessage.USERNAME_AND_EMAIL_REQUIRED.getCode(),
 					ResMessage.USERNAME_AND_EMAIL_REQUIRED.getMessage());
 		}
-		if (req.getAge() < 12) {
-			return new BasicRes(ResMessage.AGE_MISSMATCH.getCode(), ResMessage.AGE_MISSMATCH.getMessage());
-		}
+
 		if (CollectionUtils.isEmpty(req.getAnswer())) {
 			return new BasicRes(ResMessage.ANSWER_REQUIRED.getCode(), ResMessage.ANSWER_REQUIRED.getMessage());
 		}
@@ -300,7 +260,7 @@ public class QuizServiceImpl implements QuizService {
 			return new BasicRes(ResMessage.EMAIL_DUPLICATED.getCode(), ResMessage.EMAIL_DUPLICATED.getMessage());
 		}
 
-		// 比對資料庫的問卷和問題
+		System.out.println(req.getAnswer()); // 比對資料庫的問卷和問題
 		// 可以填寫的問卷必須是已經發布的
 		Quiz quiz = quizDao.getByIdAndPublishedTrue(req.getQuizId());
 
@@ -412,110 +372,69 @@ public class QuizServiceImpl implements QuizService {
 	public StatisticsRes statistics(int quizId) {
 		// 參數檢查
 		if (quizId <= 0) {
-			return new StatisticsRes(ResMessage.QUIZ_ID_ERROR.getCode(), //
-					ResMessage.QUIZ_ID_ERROR.getMessage());
+			return new StatisticsRes(ResMessage.QUIZ_ID_ERROR.getCode(), ResMessage.QUIZ_ID_ERROR.getMessage());
 		}
 
 		List<StatisticsDto> dtoList = feedbackDao.getStatisticsByQuizId(quizId);
-
 		if (dtoList.isEmpty()) {
-			return new StatisticsRes(ResMessage.SUCCESS.getCode(), //
-					ResMessage.SUCCESS.getMessage(), new ArrayList<>());
+			return new StatisticsRes(ResMessage.QUIZ_ID_ERROR.getCode(), ResMessage.QUIZ_ID_ERROR.getMessage(),
+					new ArrayList<>());
 		}
 
-		// 將 Dto 內容轉成 vo
-		List<StatisticsVo> voList = new ArrayList<>();
+		// 用 Map 儲存每個問題的統計資料，避免重複計算
+		Map<Integer, StatisticsVo> voMap = new HashMap<>();
 
-		a: for (StatisticsDto dto : dtoList) {
-			// 用來判斷 voList 中是否已存在相同問題編號的vo
-			boolean isDuplicated = false;
-			Map<String, Integer> optionCountMap = new HashMap<>();
-			StatisticsVo vo = new StatisticsVo();
+		for (StatisticsDto dto : dtoList) {
+			// 檢查並獲取對應的 StatisticsVo，若不存在則初始化
+			StatisticsVo vo = voMap.computeIfAbsent(dto.getQuesId(),
+					k -> new StatisticsVo(dto.getQuizName(), dto.getQuesId(), dto.getQuesName(), new HashMap<>()));
 
-			// 從voList中取有相同 quesId 的 vo --> 目的是不用再重新取選項，直接計算次數
-			for (StatisticsVo voItem : voList) {
-				if (voItem.getQuesId() == dto.getQuesId()) {
-					optionCountMap = voItem.getOptionCountMap();
-					vo = voItem;
-					isDuplicated = true;
-					break;
-				}
+			// 如果是簡答題型，跳過該題
+			if (dto.getType().equalsIgnoreCase(QuesType.TEXT.getType())) {
+				continue;
 			}
 
-			// 表示 voList 中沒有相同問題編號的vo
-			if (!isDuplicated) {
-				voList.add(vo);
-			}
-
-			// 把 Ques 中的 options 字串轉成 Options 類別
+			// 解析選項和答案
 			List<Options> optionsList = new ArrayList<>();
 			List<String> answerList = new ArrayList<>();
-
 			try {
-				// 題型是 text 時，選項沒有值
+				// 解析選項
 				if (!dto.getType().equalsIgnoreCase(QuesType.TEXT.getType())) {
-					optionsList = mapper.readValue(dto.getOptionsStr(), new TypeReference<>() {
+					optionsList = mapper.readValue(dto.getOptionsStr(), new TypeReference<List<Options>>() {
 					});
 				}
-
-				// 1.answer欄位有值(包括空陣列的字串)
-				// 2. 非簡答(文字)類型題目
-				// 將答案字串轉成 List<String> 空白、空字串會出事!!!!!
+				// 解析答案
 				if (StringUtils.hasText(dto.getAnswerStr())
 						&& !dto.getType().equalsIgnoreCase(QuesType.TEXT.getType())) {
-					answerList = mapper.readValue(dto.getAnswerStr(), new TypeReference<>() {
+					answerList = mapper.readValue(dto.getAnswerStr(), new TypeReference<List<String>>() {
 					});
 				}
-
 			} catch (Exception e) {
-				return new StatisticsRes(ResMessage.OPTIONS_TRANSFER_ERROR.getCode(), //
+				return new StatisticsRes(ResMessage.OPTIONS_TRANSFER_ERROR.getCode(),
 						ResMessage.OPTIONS_TRANSFER_ERROR.getMessage());
 			}
 
-			// 題型是 text 時，不蒐集選項跟答案
-			if (dto.getType().equalsIgnoreCase(QuesType.TEXT.getType())) {
-				// 確認volist中是否已存在相同問題編號的 StatisticsVo
-				if (isDuplicated) {
-					continue a; // 跳過一次外層迴圈
-				}
-				voList.add(new StatisticsVo(dto.getQuizName(), dto.getQuesId(), dto.getQuesName(), optionCountMap));
-				continue; // 跳過當次
+			// 初始化選項計數 (只有第一次遇到這個問題才初始化)
+			if (vo.getOptionCountMap().isEmpty()) {
+				optionsList.forEach(option -> vo.getOptionCountMap().put(option.getOption(), 0));
 			}
 
-			// 蒐集選項
-			// 沒有重複的 vo 需要再收集選項
-			if (!isDuplicated) {
-				for (Options item : optionsList) {
-					optionCountMap.put(item.getOption(), 0);
-				}
-			}
-
-			// 蒐集答案(計算選項次數)
-			for (String str : answerList) {
-				// 取出前一次計算出的選項次數
-				int previousCount = optionCountMap.get(str);
-				optionCountMap.put(str, previousCount + 1);
-			}
-
-			vo.setQuizName(dto.getQuizName());
-			vo.setQuesId(dto.getQuesId());
-			vo.setQuesName(dto.getQuesName());
-			vo.setOptionCountMap(optionCountMap);
-
-			// 最後不需要將 vo add到 volist中，因為迴圈開始時，已經有將其加入了
+			// 更新選項計數
+			answerList.forEach(answer -> vo.getOptionCountMap().merge(answer, 1, Integer::sum));
 		}
 
-		return new StatisticsRes(ResMessage.SUCCESS.getCode(), //
-				ResMessage.SUCCESS.getMessage(), voList);
+		// 返回統計結果
+		return new StatisticsRes(ResMessage.SUCCESS.getCode(), ResMessage.SUCCESS.getMessage(),
+				new ArrayList<>(voMap.values()));
 
 	}
 
 	@Override
 	public GetQuizRes getQuizById(int quizId) {
 		Quiz quiz = quizDao.getById(quizId);
-		List<Ques> ques = quesDao.getByQuizId(quizId);
+		List<Ques> quesList = quesDao.getByQuizId(quizId);
 
-		return new GetQuizRes(ResMessage.SUCCESS.getCode(), ResMessage.SUCCESS.getMessage(), quiz, ques);
+		return new GetQuizRes(ResMessage.SUCCESS.getCode(), ResMessage.SUCCESS.getMessage(), quiz, quesList);
 
 	}
 }

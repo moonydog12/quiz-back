@@ -8,7 +8,7 @@ import com.example.quiz11.entity.Quiz;
 public class GetQuizRes extends BasicRes {
 	private Quiz quiz;
 
-	private List<Ques> ques;
+	private List<Ques> quesList;
 
 	public GetQuizRes() {
 		super();
@@ -18,10 +18,10 @@ public class GetQuizRes extends BasicRes {
 		super(code, message);
 	}
 
-	public GetQuizRes(int code, String message, Quiz quiz, List<Ques> ques) {
+	public GetQuizRes(int code, String message, Quiz quiz, List<Ques> quesList) {
 		super(code, message);
 		this.quiz = quiz;
-		this.ques = ques;
+		this.quesList = quesList;
 	}
 
 	public Quiz getQuiz() {
@@ -29,7 +29,7 @@ public class GetQuizRes extends BasicRes {
 	}
 
 	public List<Ques> getQues() {
-		return ques;
+		return quesList;
 	}
 
 }
