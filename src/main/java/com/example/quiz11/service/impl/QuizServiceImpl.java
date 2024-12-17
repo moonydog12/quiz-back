@@ -11,6 +11,8 @@ import java.util.Optional;
 import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -41,6 +43,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.swagger.v3.oas.annotations.Hidden;
+
 @Service
 public class QuizServiceImpl implements QuizService {
 	// 常用工具寫成全域變數
@@ -56,6 +60,7 @@ public class QuizServiceImpl implements QuizService {
 	private FeedbackDao feedbackDao;
 
 	// 因為同時操作兩個dao，所以要加上 Transactional，允許資料庫 roll back(全部成功或全部失敗
+	@CacheEvict(cacheNames = "quiz_search")
 	@Transactional
 	@Override
 	public BasicRes create(CreateUpdateReq req) {
@@ -91,6 +96,7 @@ public class QuizServiceImpl implements QuizService {
 				ResMessage.SUCCESS.getMessage());
 
 	}
+
 	private BasicRes checkParams(CreateUpdateReq req) {
 
 		if (!StringUtils.hasText(req.getName()) || !StringUtils.hasText(req.getDescription())) {
@@ -133,6 +139,7 @@ public class QuizServiceImpl implements QuizService {
 	}
 
 	// 更新
+	@CacheEvict(cacheNames = "quiz_search")
 	@Transactional
 	@Override
 	public BasicRes update(CreateUpdateReq req) {
@@ -196,6 +203,9 @@ public class QuizServiceImpl implements QuizService {
 				ResMessage.SUCCESS.getMessage());
 	}
 
+	// 清除暫存資料: 只有 cacheNames 沒有 key，會把 cacheNames 是 quiz_search 的所有站存資料清除
+	// 如果是 cacheNames + key 則是指清除特定的暫存資料
+	@CacheEvict(cacheNames = "quiz_search", allEntries = true)
 	@Override
 	public BasicRes delete(DeleteReq req) {
 		// 刪問卷
@@ -208,32 +218,45 @@ public class QuizServiceImpl implements QuizService {
 				ResMessage.SUCCESS.getMessage());
 	}
 
+	// cacheNmes 可以當成是書本目錄的"章"
+	// cacheNames 等號後面字串可以多個，多個時要用大括號[]，如: chcheNames = {"A", "B"}
+	// 因為 key 等號後面的字串中有多個字串要串接，所以必須要用 concat
+	// Cache 不支援 cache ("字串1","字串2","字串3")寫法
+	// concat 中非字串參數要使用方法 toString() 轉成字串
+	// unless 可以翻成排除的意思，後面的字串是指會排除符合條件的 -> 排除 res 不成功，即只暫存成功時的資料
+	// #result: 表示方法返回的結果: 即使是不同方法有不同的返回資料型態，也通用
+	@Cacheable(cacheNames = "quiz_search", //
+			key = "#req.name.concat('-').concat(#req.startDate.toString()).concat('-')" //
+					+ ".concat(#req.endDate.toString())", //
+			unless = "#result.code != 200")
 	@Override
 	public SearchRes search(SearchReq req) {
-		// 檢視條件
-		String name = req.getName();
+		// 因為 service 中有使用 cache，所以必須要先確認 req 中參數的值都不是 null
+		// 下方條件值得轉換放到 controller
+//		// 檢視條件
+//		String name = req.getName();
+//
+//		// 若 name = null 或空白字串， 一律轉成空字串
+//		if (!StringUtils.hasText(name)) {
+//			name = "";
+//		}
+//
+//		String namePattern = "%" + name + "%";
+//
+//		LocalDate startDate = req.getStartDate();
+//		// 若沒有開始日期條件，將日期轉成很早的時間
+//		if (startDate == null) {
+//			startDate = LocalDate.of(1970, 1, 1);
+//		}
+//
+//		// 若沒有結束日期條件，將日期轉成長遠的未來時間
+//		LocalDate endDate = req.getEndDate();
+//		if (endDate == null) {
+//			endDate = LocalDate.of(9999, 12, 31);
+//
+//		}
 
-		// 若 name = null 或空白字串， 一律轉成空字串
-		if (!StringUtils.hasText(name)) {
-			name = "";
-		}
-
-		String namePattern = "%" + name + "%";
-
-		LocalDate startDate = req.getStartDate();
-		// 若沒有開始日期條件，將日期轉成很早的時間
-		if (startDate == null) {
-			startDate = LocalDate.of(1970, 1, 1);
-		}
-
-		// 若沒有結束日期條件，將日期轉成長遠的未來時間
-		LocalDate endDate = req.getEndDate();
-		if (endDate == null) {
-			endDate = LocalDate.of(9999, 12, 31);
-
-		}
-
-		List<Quiz> quizList = quizDao.getByCondition(namePattern, startDate, endDate);
+		List<Quiz> quizList = quizDao.getByCondition("%" + req.getName() + "%", req.getStartDate(), req.getEndDate());
 
 		return new SearchRes(ResMessage.SUCCESS.getCode(), //
 				ResMessage.SUCCESS.getMessage(), quizList);

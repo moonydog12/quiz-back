@@ -25,6 +25,14 @@ dependencies {
 	// mysql connector
 	implementation 'com.mysql:mysql-connector-j'
 	// jpa
+	// cache
+	implementation 'org.springframework.boot:spring-boot-starter-cache'
+	// caffeine cache
+	implementation 'com.github.ben-manes.caffeine:caffeine'
+	
+	// open api
+	implementation 'org.springdoc:springdoc-openapi-ui:1.8.0'
+	
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
